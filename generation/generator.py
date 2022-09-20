@@ -7,13 +7,10 @@ import pandas as pd
 def generate_size(N: int, n: int, k: int) -> np.ndarray:
     """
     INPUT:
-
     * N - int, number of observations in the dataset
     * n - int, the minimal size of the cluster
     * k - int, number of clusters in dataset
-
     OUTPUT:
-
     * sizes - ndarray(k, ), array with sizes of each cluster
     """
     # define the random part of our dataset
@@ -42,22 +39,18 @@ def generate_size(N: int, n: int, k: int) -> np.ndarray:
     return sizes.astype(int)
 
 
-def generate_set(N: int, M: int, k: int =-1, n: int =-1, a: float = -1, meta: bool =False):
+def generate_set(N: int, M: int, k: int = -1, n: int = -1, a: float = -1, meta: bool = False):
     """
-    INPUT:
+    @param N: int, number of observations in the dataset
+    @param M: int, dimensionality of the dataset
+    @param k: int, number of clusters in the dataset
+    @param n: int, the minimal size of the cluster
+    @param a: float, the coefficient of the intermix of the clusters
+    @param meta: bool, if True, parameters of generation of each cluster and each feature are saved
 
-    * N - int, number of observations in the dataset
-    * M - int, dimensionality of the dataset
-    * k - int, number of clusters in the dataset
-    * n - int, the minimal size of the cluster
-    * a - float, the coefficient of the intermix of the clusters
-    * meta - bool, if True, parameters of generation of each cluster and each feature are saved
 
-    OUTPUT:
-
-    * X - ndarray(N, M), data matrix
-    * labels - ndarray(N, ), array of the partition
-    :return:
+    @return X: ndarray(N, M), data matrix
+    @return labels: ndarray(N, ), array of the partition
     """
     # generate parameters randomly in case of empty input
     if k == -1:
@@ -127,23 +120,18 @@ def generate_set(N: int, M: int, k: int =-1, n: int =-1, a: float = -1, meta: bo
 
 
 def create_generation(N: int, M: np.ndarray, k: np.ndarray, a: np.ndarray, min_size: int,
-                     dataset_number: int, main_path: str):
+                      dataset_number: int, main_path: str):
     """
-    
-    INPUT:
-    
-    * N - int, number of observations in the dataset
-    * M - ndarray, range of values of dimensionality of the dataset
-    * k - ndarray, range of number of clusters in the dataset
-    * a - ndarray, range of the values for the coefficient of the intermix of the clusters
-    * min_size - int, the minimal size of the cluster
-    * dataset_number - int, number of datasets to generate for each configuration of hyperparameters
-    * main_path - str, path to save all the generated data to
-    
-    OUTPUT:
-    
     All generated datasets saved to directory as csv files (subdirectory 'csv') with the last column as the initial partition. Parameters of generation of each dataset are saved to dictionary which is saved as a .txt (subdirectory 'txt') and .pickle (subdirectory 'pickle') files. Finally, total number of generated datasets is printed
-    
+
+    @param N: int, number of observations in the dataset
+    @param M: ndarray, range of values of dimensionality of the dataset
+    @param k: ndarray, range of number of clusters in the dataset
+    @param a: ndarray, range of the values for the coefficient of the intermix of the clusters
+    @param min_size: int, the minimal size of the cluster
+    @param dataset_number: int, number of datasets to generate for each configuration of hyperparameters
+    @param main_path: str, path to save all the generated data to
+
     """
     total_num = 0
 
@@ -164,13 +152,13 @@ def create_generation(N: int, M: np.ndarray, k: np.ndarray, a: np.ndarray, min_s
             for intermix in a:
                 for i in range(dataset_number):
                     name = 'N{}_M{}_a{}_k{}_id{}'.format(N, dim, intermix, clus_n, i)
-                    X, labels, metadata = generate_set(N = N, M = dim, k = clus_n, n = min_size, a = intermix, meta = True)
+                    X, labels, metadata = generate_set(N=N, M=dim, k=clus_n, n=min_size, a=intermix, meta=True)
 
                     csv_name = os.path.join(csv_path, name)
 
                     df = pd.DataFrame(X)
                     df['labels'] = pd.Categorical(labels)
-                    df.to_csv('{}.csv'.format(csv_name), index = False)
+                    df.to_csv('{}.csv'.format(csv_name), index=False)
 
                     txt_name = os.path.join(txt_path, name)
                     with open('{}_metadata.txt'.format(txt_name), 'w') as file:
@@ -180,6 +168,6 @@ def create_generation(N: int, M: np.ndarray, k: np.ndarray, a: np.ndarray, min_s
                     with open('{}_metadata.pickle'.format(pickle_name), 'wb') as handle:
                         pickle.dump(metadata, handle)
 
-                    total_num+=1
+                    total_num += 1
 
     print('{} datasets are generated and saved to directory {}'.format(total_num, path))
