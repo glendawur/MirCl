@@ -36,7 +36,7 @@ def wss_axis(Y: np.ndarray, X: np.ndarray, method: str = 'conventional'):
 def wss_matrix(X: np.ndarray, L: np.ndarray = None, method: str = 'conventional'):
     inertia = np.zeros((L.shape[0], L.shape[1]))
     for i in range(L.shape[0]):
-        inertia[i] = np.apply_along_axis(wss_axis, 1, L[i], X, method)
+        inertia[i] = np.apply_along_axis(wss_axis, 1, L[i], X, method).reshape(-1)
     return inertia
 
 
@@ -77,7 +77,7 @@ def bss_axis(Y: np.ndarray, X: np.ndarray, method: str = 'conventional'):
 def bss_matrix(X: np.ndarray, L: np.ndarray = None, method: str = 'conventional'):
     inertia = np.zeros((L.shape[0], L.shape[1]))
     for i in range(L.shape[0]):
-        inertia[i] = np.apply_along_axis(bss_axis(), 1, L[i], X, method)
+        inertia[i] = np.apply_along_axis(bss_axis, 1, L[i], X, method).reshape(-1)
     return inertia
 
 
@@ -146,7 +146,7 @@ def wb_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
     return cls_num * wss(X, Y, centers) / bss(X, Y, centers)
 
 
-def wb_index_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, SSB: np.ndarray, aggregation=np.mean):
+def wb_index_matrix(L: np.ndarray, SSW: np.ndarray, SSB: np.ndarray, aggregation=np.mean):
     classes = np.zeros((L.shape[0], L.shape[1]))
     for i in range(L.shape[0]):
         classes[i] = np.apply_along_axis(count, 1, L[i])
@@ -187,13 +187,27 @@ def silhouette(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
     return np.mean((b - a) / np.max([a, b], axis=0))
 
 
+def silhouette_axis(Y: np.ndarray, X: np.ndarray, method: str = 'mean'):
+    return silhouette(X=X, Y=Y, centers=None, result=method)
+
+
+def silhouette_matrix(X: np.ndarray, L: np.ndarray, method: str = 'mean', aggregation=None):
+    silhouettes = np.zeros((L.shape[0], L.shape[1]))
+    for i in range(L.shape[0]):
+        silhouettes[i] = np.apply_along_axis(silhouette_axis, 1, L[i], X, method).reshape(-1)
+    if aggregation is None:
+        return silhouettes
+    else:
+        return aggregation(silhouettes, axis=1)
+
+
 # NOTE: add parameter method: 'adjusting' (not implemented) and 'fixed' () version
 def elbow(SSW: np.ndarray, levels: (int, int) = (1, 1), aggregation=np.mean):
     # if method == 'fixed':
     aggregated = aggregation(SSW, axis=1)
     indices = np.full((SSW.shape[0],), -np.inf)
     frac = (aggregated[:-(levels[0] + levels[1])] - aggregated[levels[0]:-levels[1]]) / (
-               aggregated[levels[0]:-levels[1]] - aggregated[(levels[0] + levels[1]):])
+            aggregated[levels[0]:-levels[1]] - aggregated[(levels[0] + levels[1]):])
     indices[levels[0]:-levels[1]] = frac
     return indices
 
@@ -205,7 +219,7 @@ def hartigan(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=np.mean)
         classes[i] = np.apply_along_axis(count, 1, L[i])
     num_classes = aggregation(classes, axis=1)
     indices = np.full((SSW.shape[0],), np.inf)
-    indices[:-1] = (aggregated[:-1] / aggregated[1:] - 1)(X.shape[0] - num_classes[:-1] - 1)
+    indices[:-1] = (aggregated[:-1] / aggregated[1:] - 1) * (X.shape[0] - num_classes[:-1] - 1)
     return indices
 
 # add class to compute L and 3-d matrix of wss to compute indices

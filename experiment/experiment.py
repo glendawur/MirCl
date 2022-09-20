@@ -12,7 +12,7 @@ class AlgorithmPipeline(object):
         labels = np.zeros((k_range.shape[0], exec_number, self.data.shape[0]))
         for j, k in enumerate(sorted(k_range)):
             for i in range(exec_number):
-                labels[j, i, :] = self.algorithm.fit(k=k, init_method=self.init_method, max_iter=max_iter)
+                labels[j, i], _ = self.algorithm.fit(k=k, init_method=self.init_method, max_iter=max_iter)
 
         return labels
 
