@@ -184,7 +184,7 @@ def silhouette(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
         distance[int(labels[obs])] = np.inf
         b[obs] = np.min(distance)
 
-    return np.mean((b - a) / np.max([a, b], axis=0))
+    return np.mean(np.nan_to_num((b - a) / np.max([a, b], axis=0)))
 
 
 def silhouette_axis(Y: np.ndarray, X: np.ndarray, method: str = 'mean'):
@@ -199,6 +199,15 @@ def silhouette_matrix(X: np.ndarray, L: np.ndarray, method: str = 'mean', aggreg
         return silhouettes
     else:
         return aggregation(silhouettes, axis=1)
+
+
+def silhouette_wss(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, method: str = 'mean', aggregation=np.argmin):
+    assert aggregation is not None
+    chosen_partitions = L[(np.arange(0, L.shape[0]), aggregation(SSW, axis=1))]
+    silhouettes = np.zeros((L.shape[0],))
+    for i in range(L.shape[0]):
+        silhouettes[i] = silhouette(X, chosen_partitions[i])
+    return silhouettes
 
 
 # NOTE: add parameter method: 'adjusting' (not implemented) and 'fixed' () version
