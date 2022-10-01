@@ -1,8 +1,9 @@
-import numpy as np
 import os
 import json
 import _pickle as pickle
+import numpy as np
 import pandas as pd
+
 
 def generate_size(N: int, n: int, k: int) -> np.ndarray:
     """

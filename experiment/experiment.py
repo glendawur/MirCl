@@ -1,5 +1,5 @@
+import os
 import numpy as np
-#from joblib import Parallel
 
 
 class AlgorithmPipeline(object):
@@ -22,5 +22,9 @@ class AlgorithmPipeline(object):
     #     with Parallel(n_jobs=n_jobs) as parallel:
 
 
+def save_partition(file: np.ndarray, filename: str, path: str):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    np.save(os.path.join(path, filename), file)
 
 

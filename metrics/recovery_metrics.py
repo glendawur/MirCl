@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import comb
-from miscellaneous import pairing_matrix
 
+from ..miscellaneous import pairing_matrix
 
 # from miscellaneous import pairing_matrix
 def ari(labels1: np.ndarray, labels2: np.ndarray, result: str = 'ri'):

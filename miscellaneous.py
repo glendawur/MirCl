@@ -32,6 +32,7 @@ def centering(data: np.ndarray, g: np.ndarray = None, normalize: bool = False) -
 
     return data
 
+
 # ex-wss
 def sse(Y: np.ndarray, X: np.ndarray) -> float:
     """

@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
-import time
 import matplotlib.pyplot as plt
-
 
 # input: data X and labels Y
 
@@ -119,7 +117,7 @@ def xu_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
     else:
         print("Error, no partition passed")
         return None
-    return X.shape[1] * np.log2(np.sqrt(wss(X, Y, centers) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log2(cls_num)
+    return X.shape[1] * np.log(np.sqrt(wss(X, Y, centers) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(cls_num)
 
 
 def xu_index_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=np.mean):
@@ -127,9 +125,9 @@ def xu_index_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=n
     for i in range(L.shape[0]):
         classes[i] = np.apply_along_axis(count, 1, L[i])
     if aggregation is None:
-        return X.shape[1] * np.log2(np.sqrt(SSW / (X.shape[1] * (X.shape[0] ** 2)))) + np.log2(classes)
+        return X.shape[1] * np.log(np.sqrt(SSW / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(classes)
     else:
-        return X.shape[1] * np.log2(np.sqrt(aggregation(SSW, axis=1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log2(
+        return X.shape[1] * np.log(np.sqrt(aggregation(SSW, axis=1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(
             aggregation(classes, axis=1))
 
 
@@ -172,15 +170,15 @@ def silhouette(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
     bool_matrix = np.tile(labels, (labels.shape[0], 1)) == np.tile(labels, (labels.shape[0], 1)).T
     np.fill_diagonal(bool_matrix, False)
     distances = cdist(X, X)
-    unique, count = np.unique(labels, return_counts=True)
+    u, c = np.unique(labels, return_counts=True)
     # array of a(i)
     a = np.sum(distances * bool_matrix, axis=1) / np.sum(bool_matrix, axis=1)
     # array of b(i)
     b = np.zeros(labels.shape[0])
     for obs in range(labels.shape[0]):
-        distance = np.zeros(unique.shape[0])
-        for label in range(unique.shape[0]):
-            distance[label] = np.sum(distances[obs, np.where(labels == unique[label])], axis=1) / count[label]
+        distance = np.zeros(u.shape[0])
+        for label in range(u.shape[0]):
+            distance[label] = np.sum(distances[obs, np.where(labels == u[label])], axis=1) / c[label]
         distance[int(labels[obs])] = np.inf
         b[obs] = np.min(distance)
 
@@ -231,4 +229,30 @@ def hartigan(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=np.mean)
     indices[:-1] = (aggregated[:-1] / aggregated[1:] - 1) * (X.shape[0] - num_classes[:-1] - 1)
     return indices
 
-# add class to compute L and 3-d matrix of wss to compute indices
+
+def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot: bool = False):
+    if method in {'silhouette', 'elbow', 'calinski_harabasz'}:
+        index = np.argmax(indices)
+    elif method in {'wb_index', 'xu_index'}:
+        index = np.argmin(indices)
+    elif method == 'hartigan':
+        index = indices[np.where(indices < 10)]
+        if index.shape[0] == 0:
+            index = np.nan
+        else:
+            index = index[0]
+    else:
+        print('undefined')
+        return -1
+    if to_plot:
+        fig, axs = plt.subplots(1, 1, figsize=(24, 16))
+        axs.plot(k_range, indices)
+        axs.axvline(k_range[index], color='green')
+        axs.grid()
+        axs.set_xticks(k_range)
+        axs.axhline(10 * (method == 'hartigan'), color='red')
+        axs.set_title(f'The {method} index')
+        axs.set_xlabel(xlabel='Number of clusters')
+        axs.ylim([np.min(indices[np.where(indices > -np.inf)]), np.max(indices[np.where(indices < np.max)])])
+        plt.show()
+    return k_range[index], index
