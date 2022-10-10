@@ -1,1 +1,2 @@
-from .clustering import RandomSwap, Kmeans
+from .clustering import Kmeans, RandomSwap
+

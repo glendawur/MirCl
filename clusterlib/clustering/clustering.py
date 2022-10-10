@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
+import time
 
 from ..miscellaneous import sse
 
@@ -73,6 +74,7 @@ class Kmeans(object):
         @return centers: ndarray
         @return history: (optional) ndarray
         """
+        start = time.process_time()
         assert k >= 1
 
         # define number observations
@@ -127,12 +129,12 @@ class Kmeans(object):
                 break
 
         centers = new_centers
-
+        end = time.process_time()
         # output
         if save_history:
-            return labels.astype(int), centers, history
+            return labels.astype(int), centers, (history, end - start, iteration)
         else:
-            return labels.astype(int), centers
+            return labels.astype(int), centers, ([], end - start, iteration)
 
 
 class RandomSwap(object):
@@ -160,6 +162,7 @@ class RandomSwap(object):
         @return centers: ndarray
         @return history: (optional) ndarray
         """
+        start = time.process_time()
         assert k >= 1
 
         # define number observations
@@ -183,20 +186,26 @@ class RandomSwap(object):
         distances = cdist(self.data, init_centers)
         fixed_partition = distances.argmin(axis=1)
         fixed_centers = init_centers
+
         for j in range(k):
             fixed_centers[j] = np.mean(self.data[np.where(fixed_partition == j)], axis=0)
+
+        kmeans_iterations = 0
         for i in range(max_iter):
             new_centers = fixed_centers.copy()
             new_centers[np.random.randint(0, k)] = self.data[np.random.randint(0, n)]
-            new_partition, new_centers = self.kmeans.fit(k, init_centers=new_centers, max_iter=max_kmeans_iter)
+            new_partition, new_centers, tmp = self.kmeans.fit(k, init_centers=new_centers, max_iter=max_kmeans_iter)
             # !NB
             if sse(np.array(new_partition), self.data) < sse(np.array(fixed_partition), self.data):
                 fixed_partition = new_partition
                 fixed_centers = np.array(new_centers)
                 if save_history:
                     history.append(fixed_partition)
+            kmeans_iterations += tmp[-1]
+
+        end = time.process_time()
 
         if save_history:
-            return fixed_partition.astype(int), fixed_centers, history
+            return fixed_partition.astype(int), fixed_centers, (history, end - start, kmeans_iterations)
         else:
-            return fixed_partition.astype(int), fixed_centers
+            return fixed_partition.astype(int), fixed_centers, ([], end - start, kmeans_iterations)

@@ -1,1 +1,1 @@
-from .miscellaneous import centering, pairing_matrix, sse
+from .miscellaneous import centering, sse, pairing_matrix
