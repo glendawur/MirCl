@@ -245,7 +245,10 @@ def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot:
         if index.shape[0] == 0:
             index = np.nan
         else:
-            index = index[0][0]
+            if index.shape[0] > 1:
+                index = index[0]
+            else:
+                index = int(index)
     else:
         print('undefined')
         return -1
