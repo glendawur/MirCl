@@ -241,9 +241,10 @@ def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot:
     elif method in {'wb_index', 'xu_index'}:
         index = np.argmin(indices)
     elif method == 'hartigan':
-        index = indices[np.where(indices < 10)]
-        if type(index) == np.int:
-            index = index
+        index = np.where(indices < 10)[0]
+        if index.shape[0] == 0:
+            index = np.nan
+            return index
         else:
             index = index[0]
     else:
