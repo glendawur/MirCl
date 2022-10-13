@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 
+
 # input: data X and labels Y
 
 def wss(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None, method: str = 'conventional'):
@@ -103,8 +104,8 @@ def calinski_harabasz_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, SSB:
     if aggregation is None:
         return (SSB / (classes - 1)) / (SSW / (X.shape[0] - classes))
     else:
-        return (aggregation(SSB, axis=1) / (aggregation(classes, axis=1) - 1)) / (
-                aggregation(SSW, axis=1) / (X.shape[0] - aggregation(classes, axis=1)))
+        aggregation((SSB / (classes - 1)) / (SSW / (X.shape[0] - classes)),
+                    axis=1)
 
 
 def xu_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
@@ -127,8 +128,10 @@ def xu_index_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=n
     if aggregation is None:
         return X.shape[1] * np.log(np.sqrt(SSW / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(classes)
     else:
-        return X.shape[1] * np.log(np.sqrt(aggregation(SSW, axis=1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(
-            aggregation(classes, axis=1))
+        # return X.shape[1] * np.log(np.sqrt(aggregation(SSW, axis=1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(
+        #    aggregation(classes, axis=1))
+        return aggregation(X.shape[1] * np.log(np.sqrt(SSW / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(classes),
+                           axis=1)
 
 
 def wb_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
@@ -151,7 +154,9 @@ def wb_index_matrix(L: np.ndarray, SSW: np.ndarray, SSB: np.ndarray, aggregation
     if aggregation is None:
         return classes * SSW / SSB
     else:
-        return aggregation(classes, axis=1) * aggregation(SSW, axis=1) / aggregation(SSB, axis=1)
+        # return aggregation(classes, axis=1) * aggregation(SSW, axis=1) / aggregation(SSB, axis=1)
+        return aggregation(classes * SSW / SSB,
+                           axis=1)
 
 
 def silhouette(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
