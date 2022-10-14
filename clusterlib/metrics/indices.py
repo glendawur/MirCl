@@ -244,12 +244,12 @@ def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot:
         index = np.where(indices < 10)[0]
         if index.shape[0] == 0:
             index = np.nan
-            return index
+            return index, index
         else:
             index = index[0]
     else:
         print('undefined')
-        return -1
+        return -1, -1
     if to_plot:
         fig, axs = plt.subplots(1, 1, figsize=(24, 16))
         axs.plot(k_range, indices)
