@@ -220,6 +220,8 @@ def silhouette_wss(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, method: str = 
 # NOTE: add parameter method: 'adjusting' (not implemented) and 'fixed' () version
 def elbow(SSW: np.ndarray, levels: (int, int) = (1, 1), aggregation=np.mean):
     # if method == 'fixed':
+    if type(aggregation) is tuple:
+        aggregation = aggregation[0]
     aggregated = aggregation(SSW, axis=1)
     indices = np.full((SSW.shape[0],), -np.inf)
     frac = (aggregated[:-(levels[0] + levels[1])] - aggregated[levels[0]:-levels[1]]) / (
