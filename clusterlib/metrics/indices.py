@@ -104,7 +104,7 @@ def calinski_harabasz_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, SSB:
     if aggregation is None:
         return (SSB / (classes - 1)) / (SSW / (X.shape[0] - classes))
     else:
-        aggregation((SSB / (classes - 1)) / (SSW / (X.shape[0] - classes)),
+        return aggregation((SSB / (classes - 1)) / (SSW / (X.shape[0] - classes)),
                     axis=1)
 
 
