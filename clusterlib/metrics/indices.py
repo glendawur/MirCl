@@ -231,6 +231,8 @@ def elbow(SSW: np.ndarray, levels: (int, int) = (1, 1), aggregation=np.mean):
 
 
 def hartigan(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=np.mean):
+    if type(aggregation) is tuple:
+        aggregation = aggregation[0]
     aggregated = aggregation(SSW, axis=1)
     classes = np.zeros((L.shape[0], L.shape[1]))
     for i in range(L.shape[0]):
