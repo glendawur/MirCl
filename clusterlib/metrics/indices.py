@@ -105,7 +105,7 @@ def calinski_harabasz_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, SSB:
         return (SSB / (classes - 1)) / (SSW / (X.shape[0] - classes))
     else:
         aggregated = aggregation(SSB/SSW, axis = 1)
-        return aggregated*((X.shape[0] - np.mean(classes, axis = 1))/(np.mean(classes, axis = 1) - 1)
+        return aggregated*((X.shape[0] - np.mean(classes, axis = 1))/(np.mean(classes, axis = 1) - 1))
 
 def xu_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
     if Y is None:
