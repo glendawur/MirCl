@@ -104,11 +104,8 @@ def calinski_harabasz_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, SSB:
     if aggregation is None:
         return (SSB / (classes - 1)) / (SSW / (X.shape[0] - classes))
     else:
-        if type(aggregation) is function:
-            return (aggregation(SSB, axis = 1) / np.mean(classes - 1, axis = 1)) / (aggregation(SSW, axis = 1) / (X.shape[0] - np.mean(classes, axis = 1)))
-        else:
-            return (aggregation[0](SSB, axis = 1) / np.mean(classes - 1, axis = 1)) / (aggregation[1](SSW, axis = 1) / (X.shape[0] - np.mean(classes, axis = 1)))
-
+        aggregated = aggregation(SSB/SSW, axis = 1)
+        return aggregated*((X.shape[0] - np.mean(classes, axis = 1))/(np.mean(classes, axis = 1) - 1)
 
 def xu_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
     if Y is None:
@@ -130,10 +127,7 @@ def xu_index_matrix(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=n
     if aggregation is None:
         return X.shape[1] * np.log(np.sqrt(SSW / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(classes)
     else:
-        if type(aggregation) is tuple:
-            return X.shape[1] * np.log(np.sqrt(aggregation[0](SSW, axis = 1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(np.mean(classes, axis = 1))
-        else:
-            return X.shape[1] * np.log(np.sqrt(aggregation(SSW, axis = 1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(np.mean(classes, axis = 1))
+        return X.shape[1] * np.log(np.sqrt(aggregation(SSW, axis = 1) / (X.shape[1] * (X.shape[0] ** 2)))) + np.log(np.mean(classes, axis = 1))
 
 
 def wb_index(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None):
@@ -156,11 +150,10 @@ def wb_index_matrix(L: np.ndarray, SSW: np.ndarray, SSB: np.ndarray, aggregation
     if aggregation is None:
         return classes * SSW / SSB
     else:
-        if type(aggregation) is tuple:
-            return np.mean(classes, axis = 1) * aggregation[0](SSW, axis=1) / aggregation[1](SSB,axis=1)            
-        else:
-            return np.mean(classes, axis = 1) * aggregation(SSW, axis=1) / aggregation(SSB,axis=1)
-
+        aggregated = aggregation(SSW/SSB, axis = 1)
+        return np.mean(classes, axis = 1)*aggregated
+        
+        
 def silhouette(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
                result: str = 'mean'):
     if Y is None:
@@ -203,10 +196,7 @@ def silhouette_matrix(X: np.ndarray, L: np.ndarray, method: str = 'mean', aggreg
     if aggregation is None:
         return silhouettes
     else:
-        if type(aggregation) is tuple:
-            return aggregation[0](silhouettes, axis=1)
-        else:
-            return aggregation(silhouettes, axis=1)
+        return aggregation(silhouettes, axis = 1)
 
 def silhouette_wss(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, method: str = 'mean', aggregation=np.argmin):
     assert aggregation is not None
@@ -220,26 +210,31 @@ def silhouette_wss(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, method: str = 
 # NOTE: add parameter method: 'adjusting' (not implemented) and 'fixed' () version
 def elbow(SSW: np.ndarray, levels: (int, int) = (1, 1), aggregation=np.mean):
     # if method == 'fixed':
-    if type(aggregation) is tuple:
-        aggregation = aggregation[0]
-    aggregated = aggregation(SSW, axis=1)
-    indices = np.full((SSW.shape[0],), -np.inf)
-    frac = (aggregated[:-(levels[0] + levels[1])] - aggregated[levels[0]:-levels[1]]) / (
-            aggregated[levels[0]:-levels[1]] - aggregated[(levels[0] + levels[1]):])
-    indices[levels[0]:-levels[1]] = frac
+    if aggregation is not None:
+        aggregated = aggregation(SSW, axis=1)
+        indices = np.full((SSW.shape[0],), -np.inf)
+        frac = (aggregated[:-(levels[0] + levels[1])] - aggregated[levels[0]:-levels[1]]) / (
+                aggregated[levels[0]:-levels[1]] - aggregated[(levels[0] + levels[1]):])
+        indices[levels[0]:-levels[1]] = frac
+    else:
+        indices = np.full((SSW.shape), -np.inf)
+        frac = (SSW[:-(levels[0] + levels[1])] - SSW[levels[0]:-levels[1]]) / (
+                SSW[levels[0]:-levels[1]] - SSW[(levels[0] + levels[1]):])
+        indices[levels[0]:-levels[1]] = frac
     return indices
 
-
 def hartigan(X: np.ndarray, L: np.ndarray, SSW: np.ndarray, aggregation=np.mean):
-    if type(aggregation) is tuple:
-        aggregation = aggregation[0]
-    aggregated = aggregation(SSW, axis=1)
     classes = np.zeros((L.shape[0], L.shape[1]))
     for i in range(L.shape[0]):
         classes[i] = np.apply_along_axis(count, 1, L[i])
-    num_classes = aggregation(classes, axis=1)
-    indices = np.full((SSW.shape[0],), np.inf)
-    indices[:-1] = (aggregated[:-1] / aggregated[1:] - 1) * (X.shape[0] - num_classes[:-1] - 1)
+    if aggregation is not None:
+        aggregated = aggregation(SSW, axis=1)
+        num_classes = np.mean(classes, axis=1)
+        indices = np.full((SSW.shape[0],), np.inf)
+        indices[:-1] = (aggregated[:-1] / aggregated[1:] - 1) * (X.shape[0] - num_classes[:-1] - 1)
+    else:
+        indices = np.full(SSW.shape, np.inf)
+        indices[:-1] = (SSW[:-1] / SSW[1:] - 1) * (X.shape[0] - classes[:-1] - 1)
     return indices
 
 
