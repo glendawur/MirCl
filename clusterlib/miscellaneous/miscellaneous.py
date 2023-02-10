@@ -1,80 +1,98 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
+
+def one_hot(Y: np.ndarray, n_cat: int = None):
+    return (Y.reshape(-1, 1) == np.arange(0, np.unique(Y).shape[0]).reshape(-1, np.unique(Y).shape[0])).astype(int) \
+        if n_cat is None else (Y.reshape(-1, 1) == np.arange(0, n_cat).reshape(-1, n_cat)).astype(int)
+
+
 # ex-wss
-def sse(Y: np.ndarray, X: np.ndarray) -> float:
+def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None) -> float:
     """
-    INPUT:
-    * Y - ndarray (n, ), where n is the size of dataset; the array of labels of partition
-    * X - ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
-    OUTPUT:
-    * total_wss - float, sum of squares of distances to the closest center (intertia)
+    Calculate the sum of squared errors between the data points and the cluster centers.
+
+    The sum of squared errors (SSE) is a commonly used metric to evaluate the performance of clustering algorithms.
+    It calculates the sum of the squared distances between each data point and its closest cluster center.
+
+    Parameters:
+    X (np.ndarray): The data points, with shape (N, D), where N is the number of samples and D is the number of features.
+    Y (np.ndarray, optional): The binary indicator matrix, with shape (N, K), where K is the number of clusters.
+    centers (np.ndarray, optional): The cluster centers, with shape (K, D).
+    If not provided, the cluster centers are estimated as the mean of the data points in each cluster.
+
+    Returns:
+    float: The sum of squared errors.
     """
-    unique = np.unique(Y)
-    n = Y.shape[0]
-    m = X.shape[1]
-    total_sse = 0.0
-    for i in unique:
-        centroid = np.mean(X[np.where(Y == i)], axis=0)
-        distances = cdist(X[np.where(Y == i)].reshape((-1, m)), np.array([centroid]).reshape((-1, m)))
-        distances=distances**2
-        total_sse += distances.sum()
-    return total_sse
+    if centers is None:
+        assert Y is not None
+        centers = (np.matmul(X.T, Y) / labels.sum(axis=0)).T
+
+    return np.power(cdist(X, centers), 2).min(axis=1).sum()
+
 
 def pairing_matrix(labels1: np.ndarray, labels2: np.ndarray) -> np.ndarray:
     """
-    INPUT:
-    * labels1 - ndarray (n, ), partition number 1 with k clusters
-    * labels2 - ndarray (n, ), partition number 2 with l clusters
-    OUTPUT:
-    * matrix - ndarray (k, l), contingency matrix of two partitions
+    Calculate pairing matrix between two partitions.
+
+    Parameters
+    ----------
+    labels1 : np.ndarray
+        An array of integers representing the first partition.
+    labels2 : np.ndarray
+        An array of integers representing the second partition.
+
+    Returns
+    -------
+    np.ndarray
+        A pairing matrix between the two partitions.
+
+    Examples
+    --------
+    >> labels1 = np.array([0, 0, 1, 2, 2, 2])
+    >> labels2 = np.array([1, 1, 2, 0, 0, 0])
+    >> pairing_matrix(labels1, labels2)
+    array([[0., 2., 1.],
+           [0., 0., 1.],
+           [3., 0., 0.]])
     """
+    assert labels1.shape[0] == labels2.shape[0], 'Input arrays should have the same length.'
 
-    assert labels1.shape[0] == labels2.shape[0]
-
-    # get information about partitions
     unique1, ids1 = np.unique(labels1, return_inverse=True)
     unique2, ids2 = np.unique(labels2, return_inverse=True)
 
-    # get number of clusters in each partitions
     size1 = unique1.shape[0]
     size2 = unique2.shape[0]
 
-    # create contingency matrix
-    matrix = np.zeros((size1, size2))
-
-    # full it
-    for i, j in zip(ids1, ids2):
-        matrix[i, j] += 1
+    matrix = np.zeros((size1, size2), dtype=int)
+    np.add.at(matrix, (ids1, ids2), 1)
 
     return matrix
 
+
 def centering(data: np.ndarray, g: np.ndarray = None, normalize: bool = False) -> np.ndarray:
     """
-    INPUT:
-    * data - ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
-    * g - (optional) ndarray (1, m), center of mass for the given data matrix
-    * normalize - (optional) bool, if True, then each columns of data matrix is MinMax Scaled between -1 and 1
-    OUTPUT:
-    * data - ndarray (n, m), centered (and normalized/scaled) data matrix, where n is the number of observations and m is the number of dimensions
+    Subtract mean (centering) and normalize the data.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input data.
+    g : numpy.ndarray, optional
+        Mean value to be subtracted. If None, mean of `data` will be used.
+    normalize : bool, optional
+        If True, normalize the data.
+
+    Returns
+    -------
+    numpy.ndarray
+        Centered and normalized data.
+
     """
-    # check if center of mass is given
     if g is None:
+        g = np.mean(data, axis=0)
 
-        # normalize if True
-        if normalize:
-            # normilized x = (x - min(x))/(max(x) - min(x))
-            data = (data - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            data = np.nan_to_num(data, nan=0.0)
-        # center the data
-        data = data - data.mean(axis=0)
-
-    else:
-        if normalize:
-            g = (g - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            g = np.nan_to_num(g, nan=0.0)
-            data = (data - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            data = np.nan_to_num(data, nan=0.0)
-        data = data - g
-
+    data = data - g
+    if normalize:
+        data = (data - data.mean(axis=0)) / (data.max(axis=0) - data.min(axis=0))
     return data
