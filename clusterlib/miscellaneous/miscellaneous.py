@@ -1,25 +1,35 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
+
+def one_hot(Y: np.ndarray, n_cat: int = None):
+    return (Y.reshape(-1, 1) == np.arange(0, np.unique(Y).shape[0]).reshape(-1, np.unique(Y).shape[0])).astype(int) \
+        if n_cat is None else (Y.reshape(-1, 1) == np.arange(0, n_cat).reshape(-1, n_cat)).astype(int)
+
+
 # ex-wss
-def sse(Y: np.ndarray, X: np.ndarray) -> float:
+def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None) -> float:
     """
-    INPUT:
-    * Y - ndarray (n, ), where n is the size of dataset; the array of labels of partition
-    * X - ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
-    OUTPUT:
-    * total_wss - float, sum of squares of distances to the closest center (intertia)
+    Calculate the sum of squared errors between the data points and the cluster centers.
+
+    The sum of squared errors (SSE) is a commonly used metric to evaluate the performance of clustering algorithms.
+    It calculates the sum of the squared distances between each data point and its closest cluster center.
+
+    Parameters:
+    X (np.ndarray): The data points, with shape (N, D), where N is the number of samples and D is the number of features.
+    Y (np.ndarray, optional): The binary indicator matrix, with shape (N, K), where K is the number of clusters.
+    centers (np.ndarray, optional): The cluster centers, with shape (K, D).
+    If not provided, the cluster centers are estimated as the mean of the data points in each cluster.
+
+    Returns:
+    float: The sum of squared errors.
     """
-    unique = np.unique(Y)
-    n = Y.shape[0]
-    m = X.shape[1]
-    total_sse = 0.0
-    for i in unique:
-        centroid = np.mean(X[np.where(Y == i)], axis=0)
-        distances = cdist(X[np.where(Y == i)].reshape((-1, m)), np.array([centroid]).reshape((-1, m)))
-        distances=distances**2
-        total_sse += distances.sum()
-    return total_sse
+    if centers is None:
+        assert Y is not None
+        centers = (np.matmul(X.T, Y) / labels.sum(axis=0)).T
+
+    return np.power(cdist(X, centers), 2).min(axis=1).sum()
+
 
 def pairing_matrix(labels1: np.ndarray, labels2: np.ndarray) -> np.ndarray:
     """
@@ -49,32 +59,30 @@ def pairing_matrix(labels1: np.ndarray, labels2: np.ndarray) -> np.ndarray:
 
     return matrix
 
+
 def centering(data: np.ndarray, g: np.ndarray = None, normalize: bool = False) -> np.ndarray:
     """
-    INPUT:
-    * data - ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
-    * g - (optional) ndarray (1, m), center of mass for the given data matrix
-    * normalize - (optional) bool, if True, then each columns of data matrix is MinMax Scaled between -1 and 1
-    OUTPUT:
-    * data - ndarray (n, m), centered (and normalized/scaled) data matrix, where n is the number of observations and m is the number of dimensions
+    Subtract mean (centering) and normalize the data.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input data.
+    g : numpy.ndarray, optional
+        Mean value to be subtracted. If None, mean of `data` will be used.
+    normalize : bool, optional
+        If True, normalize the data.
+
+    Returns
+    -------
+    numpy.ndarray
+        Centered and normalized data.
+
     """
-    # check if center of mass is given
     if g is None:
+        g = np.mean(data, axis=0)
 
-        # normalize if True
-        if normalize:
-            # normilized x = (x - min(x))/(max(x) - min(x))
-            data = (data - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            data = np.nan_to_num(data, nan=0.0)
-        # center the data
-        data = data - data.mean(axis=0)
-
-    else:
-        if normalize:
-            g = (g - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            g = np.nan_to_num(g, nan=0.0)
-            data = (data - data.min(axis=0)) / (data.max(axis=0) - data.min(axis=0))
-            data = np.nan_to_num(data, nan=0.0)
-        data = data - g
-
+    data = data - g
+    if normalize:
+        data = (data - data.mean(axis=0)) / (data.max(axis=0) - data.min(axis=0))
     return data

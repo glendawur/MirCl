@@ -2,59 +2,98 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import time
 
-from ..miscellaneous import sse
+from ..miscellaneous import sse, centering
 
 
 class Kmeans(object):
+    """A class implementing the for K-means clustering algorithm.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to be clustered, represented as a MxN array, where M is the
+            number of samples and N is the number of features.
+        metric : str, optional
+            The distance metric to use when computing distances between data points.
+            Default is 'euclidean'.
+        kwargs : optional
+            Additional keyword arguments to pass to the underlying KMeans object.
+
+        Attributes
+        ----------
+        M : int
+            The number of samples in the data.
+        metric : str
+            The distance metric used when computing distances between data points.
+        metric_options : dict
+            Additional options to pass to the distance metric when computing distances.
+        last_call_history : list
+            A list of the cluster centers obtained in each iteration of the fit method.
     """
 
-    """
-
-    def __init__(self, data: np.ndarray):
+    def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
         """
-        Initialization function
+        Initialize the KMeans class.
 
-        @param data: ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to be used for clustering.
+        metric : str, optional
+            The distance metric to be used. Default is 'euclidean'.
+        **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
+
+        Returns
+        -------
+        None
 
         """
+
         self.data = data
+        self.M = data.shape[0]
+        self.metric = metric
+        self.metric_options = {}
+        self.last_call_history = list()
 
-    def centers_initialization(self, k: int, method: str):
+    def init_centers(self, k: int, method: str):
         """
-        INPUT:
-        *  k - int,  the number of clusters
-        *  method -  str, 'maxmin_min' for MaxMin by Minimal Distance initialization, 'maxmin_sum' for MaxMin by Minimal Sum
-        OUTPUT:
-        *  init_centers - ndarray (k, m), data matrix, where rows are the initialized centers
+            Initialize the centers for clustering.
+
+            Parameters
+            ----------
+            k : int
+                The number of clusters to initialize.
+            method : str
+                The method of initializing the centers.
+                Possible values are 'maxmin' for MaxMin by Minimal Distance initialization,
+                'kmeans++' for k-means++ initialization,
+                and anything else for random initialization.
+
+            Returns
+            -------
+            init_centers : numpy.ndarray
+                A matrix with the initialized centers. Each row represents a center.
+
         """
 
         init_centers = np.zeros((k, self.data.shape[1]))
-        # 'maxmin_min
-        if method == 'maxmin_min':
-            for i in range(k):
-                if i == 0:
-                    cen_i = np.random.randint(0, self.data.shape[0])
-                else:
-                    cen_i = np.min(cdist(self.data, init_centers[:i]), axis=1).argmax()
-                init_centers[i] = self.data[cen_i]
-        # 'maxmin_sum'
-        elif method == 'maxmin_sum':
-            temp = []
-            for i in range(k):
-                if i == 0:
-                    cen_i = np.random.randint(0, self.data.shape[0])
-                    init_centers[i] = self.data[cen_i]
-                    temp.append(cen_i)
-                else:
-                    cen_i = np.sum(cdist(init_centers[:i], self.data), axis=0).argmax()
-                    if cen_i in temp:
-                        cen_i = np.sum(np.absolute(
-                            cdist(init_centers[:i], self.data) - np.reshape(
-                                np.mean(cdist(init_centers[:i], self.data), axis=0),
-                                (1, self.data.shape[0]))), axis=0).argmin()
 
-                    init_centers[i] = self.data[cen_i]
-                    temp.append(cen_i)
+        # choose the center that is the most distant from other centers already initialized
+        # based on the minimum distance
+        if method == 'maxmin':
+            for i in range(k):
+                cen_i = np.random.randint(0, self.data.shape[0]) if i == 0 else np.min(
+                    cdist(self.data, init_centers[:i], metric=self.metric, **self.metric_options), axis=1).argmax()
+                init_centers[i] = self.data[cen_i]
+        # kmeans++ initialization
+        elif method == 'kmeans++':
+            for i in range(k):
+                cen_i = np.random.randint(0, self.data.shape[0]) if i == 0 else np.random.choice(
+                    np.arange(0, self.data.shape[0]),
+                    p=np.power(
+                        cdist(self.data, init_centers[:i], metric=self.metric, **self.metric_options).min(axis=1) /
+                        np.linalg.norm(cdist(self.data, init_centers[:i]).min(axis=1)), 2).reshape(-1))
+                init_centers[i] = self.data[cen_i]
         # if wrong, then "random"
         else:
             indices = np.random.choice(np.arange(0, self.data.shape[0]), k, False)
@@ -62,39 +101,43 @@ class Kmeans(object):
         return init_centers
 
     def fit(self, k: int, init_centers: np.ndarray = None,
-            init_method: str = 'maxmin_min', max_iter: int = 50, save_history: bool = False):
+            init_method: str = 'maxmin', max_iter: int = 50):
         """
-        @param k: integer,
-        @param init_centers: ndarray
-        @param init_method: string
-        @param max_iter: int
-        @param save_history: boolean
+        Perform K-means clustering on the data.
 
-        @return labels: ndarray
-        @return centers: ndarray
-        @return history: (optional) ndarray
+        Parameters
+        ----------
+        k : int
+            The number of clusters to form as well as the number of centroids to generate.
+        init_centers : ndarray, optional
+            The initialization method for the centroids. If None, the centroids will be initialized using
+            the 'maxmin' method.
+        init_method : str, optional
+            The method to use for initializing the centroids.
+            Must be one of 'maxmin', 'kmeans++', or 'random'.
+        max_iter : int, optional
+            The maximum number of iterations to perform.
+
+        Returns
+        -------
+        labels : ndarray
+            An integer array of shape (n_samples,) with the indices of the cluster to which each sample belongs.
+        centers : ndarray
+            An array of shape (k, n_features) containing the cluster centers.
         """
-        start = time.process_time()
-        assert k >= 1
-
-        # define number observations
-        n = self.data.shape[0]
-        # define number of dimensions
-        m = self.data.shape[1]
+        assert k >= 1, "Number of clusters must be greater than or equal to 1"
+        n, m = self.data.shape[0], self.data.shape[1]
+        self.last_call_history = list()
 
         if k < 2:
-            return np.zeros(self.data.shape[0]), list(np.mean(self.data, axis=0))
+            return np.zeros(n), np.mean(self.data, axis=0)
 
-        # Check centers
-        if init_centers is not None:
-            assert np.array(init_centers).shape[0] == k
-            assert np.array(init_centers).shape[1] == m
+        if init_centers is None:
+            init_centers = self.init_centers(k, init_method)
         else:
-            init_centers = self.centers_initialization(k, init_method)
+            assert np.array(init_centers).shape == (k, m), "Centers have incorrect shape"
 
-        if save_history:
-            history = []
-
+        self.last_call_history.append(np.repeat(self.data.mean(axis=0).reshape(1, -1), repeats=k, axis=0))
         labels = np.zeros(n)
         old_centers = np.array(init_centers)
         iteration = 0
@@ -103,109 +146,250 @@ class Kmeans(object):
         while True:
 
             # init parameters
-            new_centers = []
+            new_centers = np.zeros(old_centers.shape)
             iteration += 1
-
             # distances
-            distances = cdist(self.data, old_centers)
+            distances = cdist(self.data, old_centers, metric=self.metric, **self.metric_options)
 
             assert distances.shape[0] == n
             assert distances.shape[1] == k
 
-            labels = distances.argmin(axis=1)
-            assert len(labels) == n
-
-            if save_history:
-                history.append(labels)
-
-            for j in range(k):
-                new_centers.append(np.mean(self.data[np.where(labels == j)], axis=0))
-
-            if not np.all(np.array(new_centers) == np.array(old_centers)):
+            labels = (distances == distances.min(axis=1).reshape(-1, 1)).astype(int)
+            new_centers = (np.matmul(self.data.T, labels) / labels.sum(axis=0)).T
+            self.last_call_history.append(new_centers)
+            if not np.array_equal(new_centers, old_centers):
                 old_centers = new_centers
             else:
                 break
             if iteration > max_iter:
                 break
 
-        centers = new_centers
+        centers = old_centers
         end = time.process_time()
         # output
-        if save_history:
-            return labels.astype(int), centers, (history, end - start, iteration)
-        else:
-            return labels.astype(int), centers, ([], end - start, iteration)
+        return labels.argmax(axis=1).astype(int), centers
 
 
 class RandomSwap(object):
-    def __init__(self, data: np.ndarray):
+    """A class implementing the Random Swap algorithm for K-means clustering.
+
+        The Random Swap algorithm is a heuristic approach to find the global minimum
+        of the sum of squared distances (SSE) between data points and cluster centers.
+        It initializes K-means clustering with a specified number of clusters and
+        iteratively performs swaps of randomly selected data points between clusters
+        to find the best solution.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to be clustered, represented as a MxN array, where M is the
+            number of samples and N is the number of features.
+        metric : str, optional
+            The distance metric to use when computing distances between data points.
+            Default is 'euclidean'.
+        kwargs : optional
+            Additional keyword arguments to pass to the underlying KMeans object.
+
+        Attributes
+        ----------
+        M : int
+            The number of samples in the data.
+        metric : str
+            The distance metric used when computing distances between data points.
+        metric_options : dict
+            Additional options to pass to the distance metric when computing distances.
+        last_call_history : list
+            A list of the cluster centers obtained in each iteration of the fit method.
+        km : KMeans
+            An instance of the KMeans class, used to perform K-means clustering.
+
+    """
+    def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
         """
-        Initialization function
+        Initialize the RandowSwap class.
 
-        @param data: ndarray (n, m), data matrix, where n is the number of observations and m is the number of dimensions
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to be used for clustering.
+        metric : str, optional
+            The distance metric to be used. Default is 'euclidean'.
+        **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
 
+        Returns
+        -------
+        None
         """
-        self.data = data
-        self.kmeans = Kmeans(data)
 
-    def fit(self, k: int, max_iter: int = 70, init_centers: np.ndarray = None,
-            init_method: str = 'maxmin_min', max_kmeans_iter: int = 50, save_history: bool = False):
+        self.M = data.shape[0]
+        self.metric = metric
+        self.metric_options = {}
+        self.last_call_history = list()
+        self.km = Kmeans(data, self.metric, **self.metric_options)
+
+    def fit(self, k: int, init_centers: np.ndarray = None, init_method: str = 'maxmin',
+            max_swaps: int = 50, max_convergence_iter: int = 50):
+        """Perform the Random Swap algorithm to find the best K-means clustering solution.
+
+                Parameters
+                ----------
+                k : int
+                    The number of clusters to use for K-means clustering.
+                init_centers : np.ndarray, optional
+                    The initial cluster centers to use. If None (default), the cluster centers
+                    will be initialized using the specified `init_method`.
+                init_method : str, optional
+                    The method to use for initializing the cluster centers, if `init_centers`
+                    is not specified. Default is 'maxmin'.
+                max_swaps : int, optional
+                    The maximum number of swaps to perform before ending the algorithm.
+                    Default is 50.
+                max_convergence_iter : int, optional
+                    The maximum number of iterations to use for convergence in each K-means
+                    clustering step. Default is 50.
+
+                Returns
+                -------
+                 labels : ndarray
+                    An integer array of shape (n_samples,) with the indices of the cluster to which each sample belongs.
+                centers : ndarray
+                    An array of shape (k, n_features) containing the cluster centers.
         """
-        @param k: integer,
-        @param max_iter: int
-        @param init_centers: ndarray
-        @param init_method: string
-        @param max_kmeans_iter: int
-        @param save_history: boolean
-
-        @return labels: ndarray
-        @return centers: ndarray
-        @return history: (optional) ndarray
-        """
-        start = time.process_time()
-        assert k >= 1
-
-        # define number observations
-        n = self.data.shape[0]
-        # define number of dimensions
-        m = self.data.shape[1]
+        assert k >= 1, "Number of clusters must be greater than or equal to 1"
+        n, m = self.km.data.shape[0], self.km.data.shape[1]
+        self.last_call_history = list()
 
         if k < 2:
-            return np.zeros(self.data.shape[0]), list(np.mean(self.data, axis=0))
+            return np.zeros(n), np.mean(self.km.data, axis=0)
 
-        # Check centers
-        if init_centers is not None:
-            assert np.array(init_centers).shape[0] == k
-            assert np.array(init_centers).shape[1] == m
+        if init_centers is None:
+            init_centers = self.km.init_centers(k, init_method)
         else:
-            init_centers = np.array(self.kmeans.centers_initialization(k, init_method))
+            assert np.array(init_centers).shape == (k, m), "Centers have incorrect shape"
 
-        if save_history:
-            history = []
+        self.last_call_history.append(init_centers)
+        best_centers = init_centers
+        best_labels = None
+        best_sse = float('inf')
 
-        distances = cdist(self.data, init_centers)
-        fixed_partition = distances.argmin(axis=1)
-        fixed_centers = init_centers
+        counter = 0
+        for i in range(max_swaps):
+            labels, centers = self.km.fit(k=k, init_centers=init_centers, max_iter=max_convergence_iter)
+            if best_sse > sse(self.km.data, centers):
+                best_sse = sse(self.km.data, centers)
+                best_centers = centers
+                best_labels = labels
+                self.last_call_history.extend(self.km.last_call_history)
+                counter = 0
+            elif best_sse == sse(self.km.data, centers):
+                counter += 1
+                # counter value can be changed
+                if counter == 2:
+                    break
 
-        for j in range(k):
-            fixed_centers[j] = np.mean(self.data[np.where(fixed_partition == j)], axis=0)
+        return best_labels, best_centers
 
-        kmeans_iterations = 0
-        for i in range(max_iter):
-            new_centers = fixed_centers.copy()
-            new_centers[np.random.randint(0, k)] = self.data[np.random.randint(0, n)]
-            new_partition, new_centers, tmp = self.kmeans.fit(k, init_centers=new_centers, max_iter=max_kmeans_iter)
-            # !NB
-            if sse(np.array(new_partition), self.data) < sse(np.array(fixed_partition), self.data):
-                fixed_partition = new_partition
-                fixed_centers = np.array(new_centers)
-                if save_history:
-                    history.append(fixed_partition)
-            kmeans_iterations += tmp[-1]
 
-        end = time.process_time()
+class AnomalousPatterns(object):
+    """
+        A class for detecting anomalous patterns in data.
 
-        if save_history:
-            return fixed_partition.astype(int), fixed_centers, (history, end - start, kmeans_iterations)
-        else:
-            return fixed_partition.astype(int), fixed_centers, ([], end - start, kmeans_iterations)
+        Parameters
+        ----------
+        data : np.ndarray, shape (n_samples, n_features)
+            The input data to be processed.
+        metric : str, optional
+            The distance metric used to compare observations. Default is 'euclidean'.
+        kwargs : optional
+            Additional keyword arguments passed to the distance metric.
+
+        Attributes
+        ----------
+        data : np.ndarray, shape (n_samples, n_features)
+            The input data after centering and normalizing.
+        M : int
+            The number of observations in the data.
+        metric : str
+            The distance metric used to compare observations.
+        metric_options : dict
+            Additional options for the distance metric.
+        last_call_history : list
+            The history of the algorithm's results for each iteration.
+
+    """
+    def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
+        """
+            Fit the model to the data.
+
+            Parameters
+            ----------
+            max_iter : int, optional
+                Maximum number of iterations for updating the centers. Default is 50.
+
+            Returns
+            -------
+            partition : np.ndarray, shape (n_samples,)
+                The cluster assignments for each observation. Labels are zero-indexed.
+            out_centers : np.ndarray, shape (n_clusters, n_features)
+                The final cluster centers.
+
+        """
+        self.data = centering(data, normalize=True)
+        self.M = data.shape[0]
+        self.metric = metric
+        self.metric_options = {}
+        self.last_call_history = list()
+
+    def fit(self, max_iter: int = 50):
+        """
+            Perform clustering on data with anomalous pattern extraction.
+
+            Parameters
+            ----------
+            max_iter : int, optional
+                Maximum number of iterations to perform before ending the loop. The default is 50.
+
+            Returns
+            -------
+            tuple of ndarray
+                Returns a tuple of two ndarrays. The first ndarray represents the cluster assignments
+                of each data point. The second ndarray represents the centers of each cluster.
+
+        """
+        n, m = self.data.shape[0], self.data.shape[1]
+        self.last_call_history = list()
+        partition = np.zeros(self.data.shape[0])
+
+        out_centers = list()
+        cluster = 0
+        while True:
+            cluster += 1
+            idx = np.where(partition == 0)
+            p_x = self.data[idx]
+            old_center = p_x[np.power(np.linalg.norm(p_x, axis=1), 2).argmax()]
+            self.last_call_history.append([(cluster, old_center)])
+
+            iteration = 0
+            while True:
+                iteration += 1
+                distances = cdist(p_x, np.array([np.zeros(old_center.shape), old_center]), metric)
+
+                labels = distances.argmin(axis=1)
+                new_center = p_x[np.where(labels == 1)].mean(axis=0)
+
+                self.last_call_history.append([(cluster, new_center)])
+
+                if not np.array_equal(new_center, old_center):
+                    old_center = new_center
+                else:
+                    break
+                if iteration > max_iter:
+                    break
+
+            partition[idx[0][np.where(labels == 1)]] = cluster
+            out_centers.append(old_center)
+
+            if np.where(partition == 0)[0].shape[0] == 0:
+                break
+
+        return partition - 1, np.array(out_centers)
