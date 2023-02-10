@@ -154,7 +154,7 @@ class Kmeans(object):
             assert distances.shape[0] == n
             assert distances.shape[1] == k
 
-            labels = (distances == distances.min(axis=1).reshape(-1, 1)).astype(int)
+            labels = one_hot(distances.argmin(axis=1))
             new_centers = (np.matmul(self.data.T, labels) / labels.sum(axis=0)).T
             self.last_call_history.append(new_centers)
             if not np.array_equal(new_centers, old_centers):
@@ -205,6 +205,7 @@ class RandomSwap(object):
                 An instance of the KMeans class, used to perform K-means clustering.
 
     """
+
     def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
         """
         Initialize the RandowSwap class.
@@ -319,23 +320,24 @@ class AnomalousPatterns(object):
             The history of the algorithm's results for each iteration.
 
     """
+
     def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
         """
-        Fit the model to the data.
+        Initialize the AnomalousPatters class.
 
         Parameters
         ----------
-            max_iter : int, optional
-                Maximum number of iterations for updating the centers. Default is 50.
+            data : np.ndarray
+                The data to be used for clustering.
+            metric : str, optional
+                The distance metric to be used. Default is 'euclidean'.
+            **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
 
         Returns
         -------
-            partition : np.ndarray, shape (n_samples,)
-                The cluster assignments for each observation. Labels are zero-indexed.
-            out_centers : np.ndarray, shape (n_clusters, n_features)
-                The final cluster centers.
-
+            None
         """
+
         self.data = centering(data, normalize=True)
         self.M = data.shape[0]
         self.metric = metric
