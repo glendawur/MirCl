@@ -33,29 +33,39 @@ def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None) -> floa
 
 def pairing_matrix(labels1: np.ndarray, labels2: np.ndarray) -> np.ndarray:
     """
-    INPUT:
-    * labels1 - ndarray (n, ), partition number 1 with k clusters
-    * labels2 - ndarray (n, ), partition number 2 with l clusters
-    OUTPUT:
-    * matrix - ndarray (k, l), contingency matrix of two partitions
+    Calculate pairing matrix between two partitions.
+
+    Parameters
+    ----------
+    labels1 : np.ndarray
+        An array of integers representing the first partition.
+    labels2 : np.ndarray
+        An array of integers representing the second partition.
+
+    Returns
+    -------
+    np.ndarray
+        A pairing matrix between the two partitions.
+
+    Examples
+    --------
+    >> labels1 = np.array([0, 0, 1, 2, 2, 2])
+    >> labels2 = np.array([1, 1, 2, 0, 0, 0])
+    >> pairing_matrix(labels1, labels2)
+    array([[0., 2., 1.],
+           [0., 0., 1.],
+           [3., 0., 0.]])
     """
+    assert labels1.shape[0] == labels2.shape[0], 'Input arrays should have the same length.'
 
-    assert labels1.shape[0] == labels2.shape[0]
-
-    # get information about partitions
     unique1, ids1 = np.unique(labels1, return_inverse=True)
     unique2, ids2 = np.unique(labels2, return_inverse=True)
 
-    # get number of clusters in each partitions
     size1 = unique1.shape[0]
     size2 = unique2.shape[0]
 
-    # create contingency matrix
-    matrix = np.zeros((size1, size2))
-
-    # full it
-    for i, j in zip(ids1, ids2):
-        matrix[i, j] += 1
+    matrix = np.zeros((size1, size2), dtype=int)
+    np.add.at(matrix, (ids1, ids2), 1)
 
     return matrix
 

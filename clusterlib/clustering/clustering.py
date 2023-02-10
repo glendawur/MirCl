@@ -6,29 +6,30 @@ from ..miscellaneous import sse, centering
 
 
 class Kmeans(object):
-    """A class implementing the for K-means clustering algorithm.
+    """
+        A class implementing the for K-means clustering algorithm.
 
         Parameters
         ----------
-        data : np.ndarray
-            The data to be clustered, represented as a MxN array, where M is the
-            number of samples and N is the number of features.
-        metric : str, optional
-            The distance metric to use when computing distances between data points.
-            Default is 'euclidean'.
-        kwargs : optional
-            Additional keyword arguments to pass to the underlying KMeans object.
+            data : np.ndarray
+                The data to be clustered, represented as a MxN array, where M is the
+                number of samples and N is the number of features.
+            metric : str, optional
+                The distance metric to use when computing distances between data points.
+                Default is 'euclidean'.
+            kwargs : optional
+                Additional keyword arguments to pass to the underlying KMeans object.
 
         Attributes
         ----------
-        M : int
-            The number of samples in the data.
-        metric : str
-            The distance metric used when computing distances between data points.
-        metric_options : dict
-            Additional options to pass to the distance metric when computing distances.
-        last_call_history : list
-            A list of the cluster centers obtained in each iteration of the fit method.
+            M : int
+                The number of samples in the data.
+            metric : str
+                The distance metric used when computing distances between data points.
+            metric_options : dict
+                Additional options to pass to the distance metric when computing distances.
+            last_call_history : list
+                A list of the cluster centers obtained in each iteration of the fit method.
     """
 
     def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
@@ -37,15 +38,15 @@ class Kmeans(object):
 
         Parameters
         ----------
-        data : np.ndarray
-            The data to be used for clustering.
-        metric : str, optional
-            The distance metric to be used. Default is 'euclidean'.
-        **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
+            data : np.ndarray
+                The data to be used for clustering.
+            metric : str, optional
+                The distance metric to be used. Default is 'euclidean'.
+            **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
 
         Returns
         -------
-        None
+            None
 
         """
 
@@ -57,23 +58,22 @@ class Kmeans(object):
 
     def init_centers(self, k: int, method: str):
         """
-            Initialize the centers for clustering.
+        Initialize the centers for clustering.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             k : int
                 The number of clusters to initialize.
             method : str
                 The method of initializing the centers.
                 Possible values are 'maxmin' for MaxMin by Minimal Distance initialization,
                 'kmeans++' for k-means++ initialization,
-                and anything else for random initialization.
+            and anything else for random initialization.
 
-            Returns
-            -------
+        Returns
+        -------
             init_centers : numpy.ndarray
                 A matrix with the initialized centers. Each row represents a center.
-
         """
 
         init_centers = np.zeros((k, self.data.shape[1]))
@@ -107,23 +107,23 @@ class Kmeans(object):
 
         Parameters
         ----------
-        k : int
-            The number of clusters to form as well as the number of centroids to generate.
-        init_centers : ndarray, optional
-            The initialization method for the centroids. If None, the centroids will be initialized using
-            the 'maxmin' method.
-        init_method : str, optional
-            The method to use for initializing the centroids.
-            Must be one of 'maxmin', 'kmeans++', or 'random'.
-        max_iter : int, optional
-            The maximum number of iterations to perform.
+            k : int
+                The number of clusters to form as well as the number of centroids to generate.
+            init_centers : ndarray, optional
+                The initialization method for the centroids. If None, the centroids will be initialized using
+                the 'maxmin' method.
+            init_method : str, optional
+                The method to use for initializing the centroids.
+                Must be one of 'maxmin', 'kmeans++', or 'random'.
+            max_iter : int, optional
+                The maximum number of iterations to perform.
 
         Returns
         -------
-        labels : ndarray
-            An integer array of shape (n_samples,) with the indices of the cluster to which each sample belongs.
-        centers : ndarray
-            An array of shape (k, n_features) containing the cluster centers.
+            labels : ndarray
+                An integer array of shape (n_samples,) with the indices of the cluster to which each sample belongs.
+            centers : ndarray
+                An array of shape (k, n_features) containing the cluster centers.
         """
         assert k >= 1, "Number of clusters must be greater than or equal to 1"
         n, m = self.data.shape[0], self.data.shape[1]
@@ -171,7 +171,8 @@ class Kmeans(object):
 
 
 class RandomSwap(object):
-    """A class implementing the Random Swap algorithm for K-means clustering.
+    """
+        A class implementing the Random Swap algorithm for K-means clustering.
 
         The Random Swap algorithm is a heuristic approach to find the global minimum
         of the sum of squared distances (SSE) between data points and cluster centers.
@@ -181,27 +182,27 @@ class RandomSwap(object):
 
         Parameters
         ----------
-        data : np.ndarray
-            The data to be clustered, represented as a MxN array, where M is the
-            number of samples and N is the number of features.
-        metric : str, optional
-            The distance metric to use when computing distances between data points.
-            Default is 'euclidean'.
-        kwargs : optional
-            Additional keyword arguments to pass to the underlying KMeans object.
+            data : np.ndarray
+                The data to be clustered, represented as a MxN array, where M is the
+                number of samples and N is the number of features.
+            metric : str, optional
+                The distance metric to use when computing distances between data points.
+                Default is 'euclidean'.
+            kwargs : optional
+                Additional keyword arguments to pass to the underlying KMeans object.
 
         Attributes
         ----------
-        M : int
-            The number of samples in the data.
-        metric : str
-            The distance metric used when computing distances between data points.
-        metric_options : dict
-            Additional options to pass to the distance metric when computing distances.
-        last_call_history : list
-            A list of the cluster centers obtained in each iteration of the fit method.
-        km : KMeans
-            An instance of the KMeans class, used to perform K-means clustering.
+            M : int
+                The number of samples in the data.
+            metric : str
+                The distance metric used when computing distances between data points.
+            metric_options : dict
+                Additional options to pass to the distance metric when computing distances.
+            last_call_history : list
+                A list of the cluster centers obtained in each iteration of the fit method.
+            km : KMeans
+                An instance of the KMeans class, used to perform K-means clustering.
 
     """
     def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
@@ -210,15 +211,15 @@ class RandomSwap(object):
 
         Parameters
         ----------
-        data : np.ndarray
-            The data to be used for clustering.
-        metric : str, optional
-            The distance metric to be used. Default is 'euclidean'.
-        **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
+            data : np.ndarray
+                The data to be used for clustering.
+            metric : str, optional
+                The distance metric to be used. Default is 'euclidean'.
+            **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
 
         Returns
         -------
-        None
+            None
         """
 
         self.M = data.shape[0]
@@ -229,10 +230,11 @@ class RandomSwap(object):
 
     def fit(self, k: int, init_centers: np.ndarray = None, init_method: str = 'maxmin',
             max_swaps: int = 50, max_convergence_iter: int = 50):
-        """Perform the Random Swap algorithm to find the best K-means clustering solution.
+        """
+            Perform the Random Swap algorithm to find the best K-means clustering solution.
 
-                Parameters
-                ----------
+            Parameters
+            ----------
                 k : int
                     The number of clusters to use for K-means clustering.
                 init_centers : np.ndarray, optional
@@ -248,9 +250,9 @@ class RandomSwap(object):
                     The maximum number of iterations to use for convergence in each K-means
                     clustering step. Default is 50.
 
-                Returns
-                -------
-                 labels : ndarray
+            Returns
+            -------
+                labels : ndarray
                     An integer array of shape (n_samples,) with the indices of the cluster to which each sample belongs.
                 centers : ndarray
                     An array of shape (k, n_features) containing the cluster centers.
@@ -292,10 +294,10 @@ class RandomSwap(object):
 
 class AnomalousPatterns(object):
     """
-        A class for detecting anomalous patterns in data.
+    A class for detecting anomalous patterns in data.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
         data : np.ndarray, shape (n_samples, n_features)
             The input data to be processed.
         metric : str, optional
@@ -303,8 +305,8 @@ class AnomalousPatterns(object):
         kwargs : optional
             Additional keyword arguments passed to the distance metric.
 
-        Attributes
-        ----------
+    Attributes
+    ----------
         data : np.ndarray, shape (n_samples, n_features)
             The input data after centering and normalizing.
         M : int
@@ -319,15 +321,15 @@ class AnomalousPatterns(object):
     """
     def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
         """
-            Fit the model to the data.
+        Fit the model to the data.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             max_iter : int, optional
                 Maximum number of iterations for updating the centers. Default is 50.
 
-            Returns
-            -------
+        Returns
+        -------
             partition : np.ndarray, shape (n_samples,)
                 The cluster assignments for each observation. Labels are zero-indexed.
             out_centers : np.ndarray, shape (n_clusters, n_features)
@@ -342,18 +344,19 @@ class AnomalousPatterns(object):
 
     def fit(self, max_iter: int = 50):
         """
-            Perform clustering on data with anomalous pattern extraction.
+        Perform clustering on data with anomalous pattern extraction.
 
-            Parameters
-            ----------
-            max_iter : int, optional
-                Maximum number of iterations to perform before ending the loop. The default is 50.
+        Parameters
+        ----------
+        max_iter : int, optional
+            Maximum number of iterations to perform before ending the loop. The default is 50.
 
-            Returns
+        Returns
             -------
-            tuple of ndarray
-                Returns a tuple of two ndarrays. The first ndarray represents the cluster assignments
-                of each data point. The second ndarray represents the centers of each cluster.
+             labels : ndarray
+                An integer array of shape (n_samples,) with the indices of the anomalous cluster that was extracted.
+            centers : ndarray
+                An array of shape (k, n_features) containing the anomalous cluster centers.
 
         """
         n, m = self.data.shape[0], self.data.shape[1]
@@ -372,7 +375,8 @@ class AnomalousPatterns(object):
             iteration = 0
             while True:
                 iteration += 1
-                distances = cdist(p_x, np.array([np.zeros(old_center.shape), old_center]), metric)
+                distances = cdist(p_x, np.array([np.zeros(old_center.shape), old_center]),
+                                  self.metric, **self.metric_options)
 
                 labels = distances.argmin(axis=1)
                 new_center = p_x[np.where(labels == 1)].mean(axis=0)
