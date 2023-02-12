@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import time
 
-from ..miscellaneous import sse, centering
+from ..miscellaneous import sse, centering, one_hot
 
 
 class Kmeans(object):
