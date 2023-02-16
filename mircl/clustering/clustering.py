@@ -53,8 +53,9 @@ class Kmeans(object):
         self.data = data
         self.M = data.shape[0]
         self.metric = metric
-        self.metric_options = {}
+        self.metric_options = kwargs
         self.last_call_history = list()
+        self.cluster_centers_ = None
 
     def init_centers(self, k: int, method: str):
         """
@@ -164,10 +165,10 @@ class Kmeans(object):
             if iteration > max_iter:
                 break
 
-        centers = old_centers
+        self.cluster_centers_ = old_centers
         end = time.process_time()
         # output
-        return labels.argmax(axis=1).astype(int), centers
+        return labels.argmax(axis=1).astype(int), self.cluster_centers_
 
 
 class RandomSwap(object):
@@ -206,7 +207,7 @@ class RandomSwap(object):
 
     """
 
-    def __init__(self, data: np.ndarray, metric: str = 'euclidean', **kwargs):
+    def __init__(self, data: np.ndarray, metric: str = 'euclidean', power: float = 2, **kwargs):
         """
         Initialize the RandowSwap class.
 
@@ -216,6 +217,8 @@ class RandomSwap(object):
                 The data to be used for clustering.
             metric : str, optional
                 The distance metric to be used. Default is 'euclidean'.
+            power: float, optional
+                The value to compute the power for SSE
             **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
 
         Returns
@@ -225,12 +228,37 @@ class RandomSwap(object):
 
         self.M = data.shape[0]
         self.metric = metric
-        self.metric_options = {}
+        self.metric_options = kwargs
         self.last_call_history = list()
-        self.km = Kmeans(data, self.metric, **self.metric_options)
+        self.power = power
+        self.km = Kmeans(data, metric=self.metric, **self.metric_options)
+
+    def swap_centers(self, current_centers, current_labels):
+        """
+
+        Mathod perform the swap-step
+
+        Parameters
+        ----------
+            current_centers: np.ndarray
+                Centers related with best partition by the moment of swap step.
+            current_labels: np.ndarray
+                Labels related with best partition by the moment of swap step.
+
+        Returns
+        -------
+            init_centers: np.ndarray
+                New set of centers before new K-Means iteration
+        """
+        idx = np.random.choice(np.arange(0, current_centers.shape[0]))
+        swap_choice = np.where(current_labels != idx)[0]
+        new_centers = current_centers
+        new_centers[idx] = self.km.data[np.random.choice(swap_choice)]
+        return new_centers
 
     def fit(self, k: int, init_centers: np.ndarray = None, init_method: str = 'maxmin',
-            max_swaps: int = 50, max_convergence_iter: int = 50):
+            max_swaps: int = 50, max_convergence_iter: int = 50, early_stop: bool = False,
+            early_stop_criterion: int = 2):
         """
             Perform the Random Swap algorithm to find the best K-means clustering solution.
 
@@ -250,6 +278,11 @@ class RandomSwap(object):
                 max_convergence_iter : int, optional
                     The maximum number of iterations to use for convergence in each K-means
                     clustering step. Default is 50.
+                early_stop: bool, optional
+                    Indicates whether we stop iteration of swaps after criterion is fulfilled
+                early_stop_criterion: int, optional, default = 2
+                    Indicates max number of consecutive swaps that resulted in the same partition
+                    and RandomSwap convergence call is made
 
             Returns
             -------
@@ -272,22 +305,32 @@ class RandomSwap(object):
 
         self.last_call_history.append(init_centers)
         best_centers = init_centers
-        best_labels = None
+        best_labels = cdist(self.km.data, best_centers, metric=self.metric, **self.metric_options).argmin(axis=1)
         best_sse = float('inf')
 
         counter = 0
         for i in range(max_swaps):
+            if i > 0:
+                init_centers = self.swap_centers(best_centers, best_labels)
             labels, centers = self.km.fit(k=k, init_centers=init_centers, max_iter=max_convergence_iter)
-            if best_sse > sse(self.km.data, centers):
-                best_sse = sse(self.km.data, centers)
+            if best_sse > sse(self.km.data, centers=centers, metric=self.metric,
+                              power=self.power, **self.metric_options):
+                best_sse = sse(self.km.data, centers=centers, metric=self.metric,
+                               power=self.power, **self.metric_options)
                 best_centers = centers
                 best_labels = labels
-                self.last_call_history.extend(self.km.last_call_history)
+                self.last_call_history.extend(self.km.last_call_history[1:])
                 counter = 0
-            elif best_sse == sse(self.km.data, centers):
+            elif best_sse == sse(self.km.data, centers=centers, metric=self.metric,
+                                 power=self.power, **self.metric_options):
+                best_sse = sse(self.km.data, centers=centers, metric=self.metric,
+                               power=self.power, **self.metric_options)
+                best_centers = centers
+                best_labels = labels
+                self.last_call_history.extend(self.km.last_call_history[1:])
                 counter += 1
                 # counter value can be changed
-                if counter == 2:
+                if (counter == early_stop_criterion) & early_stop:
                     break
 
         return best_labels, best_centers
@@ -371,7 +414,8 @@ class AnomalousPatterns(object):
             cluster += 1
             idx = np.where(partition == 0)
             p_x = self.data[idx]
-            old_center = p_x[np.power(np.linalg.norm(p_x, axis=1), 2).argmax()]
+            old_center = p_x[cdist(p_x, np.array([np.zeros(p_x.shape[1])]).reshape(1, -1),
+                                   self.metric, **self.metric_options).argmax()]
             self.last_call_history.append([(cluster, old_center)])
 
             iteration = 0

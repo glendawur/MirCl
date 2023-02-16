@@ -8,7 +8,8 @@ def one_hot(Y: np.ndarray, n_cat: int = None):
 
 
 # ex-wss
-def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None) -> float:
+def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None,
+        power: float = 2, metric: str = 'euclidean', **kwargs) -> float:
     """
     Calculate the sum of squared errors between the data points and the cluster centers.
 
@@ -16,19 +17,30 @@ def sse(X: np.ndarray, Y: np.ndarray = None, centers: np.ndarray = None) -> floa
     It calculates the sum of the squared distances between each data point and its closest cluster center.
 
     Parameters:
-    X (np.ndarray): The data points, with shape (N, D), where N is the number of samples and D is the number of features.
-    Y (np.ndarray, optional): The binary indicator matrix, with shape (N, K), where K is the number of clusters.
-    centers (np.ndarray, optional): The cluster centers, with shape (K, D).
-    If not provided, the cluster centers are estimated as the mean of the data points in each cluster.
-
+        X (np.ndarray)
+            The data points, with shape (N, D), where N is the number of samples and D is the number of features.
+        Y (np.ndarray, optional)
+            The binary indicator matrix, with shape (N, K), where K is the number of clusters.
+        centers (np.ndarray, optional): The cluster centers, with shape (K, D).
+            If not provided, the cluster centers are estimated as the mean of the data points in each cluster.
+        power: float
+            Value to power the sum of distances
+        metric: str
+            Metric to be used to compute distance
+        **kwargs : Optional auxiliary arguments to pass to scipy.spatial.distance.cdist to specify metric.
     Returns:
-    float: The sum of squared errors.
+        float: The sum of squared errors.
     """
+
     if centers is None:
         assert Y is not None
-        centers = (np.matmul(X.T, Y) / labels.sum(axis=0)).T
+        assert Y.shape[0] == X.shape[0], f'Different shape: Y is {Y.shape}, X is {X.shape}'
+        if len(Y.shape) == 1:
+            Y = one_hot(Y)
+        centers = (np.matmul(X.T, Y) / Y.sum(axis=0)).T
+    assert centers.shape[1] == X.shape[1]
 
-    return np.power(cdist(X, centers), 2).min(axis=1).sum()
+    return np.power(cdist(X, centers, metric=metric, **kwargs), power).min(axis=1).sum()
 
 
 def pairing_matrix(labels1: np.ndarray, labels2: np.ndarray) -> np.ndarray:

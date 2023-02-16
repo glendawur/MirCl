@@ -685,7 +685,7 @@ def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot:
         print('undefined')
         return -1, -1
     if to_plot:
-        fig, axs = plt.subplots(1, 1, figsize=(24, 16))
+        fig, axs = plt.subplots(1, 1, figsize=(6, 6))
         axs.plot(k_range, indices)
         axs.axvline(k_range[index], color='green')
         axs.grid()
@@ -693,6 +693,6 @@ def find_optimal(indices: np.ndarray, method: str, k_range: np.ndarray, to_plot:
         axs.axhline(10 * (method == 'hartigan'), color='red')
         axs.set_title(f'The {method} index')
         axs.set_xlabel(xlabel='Number of clusters')
-        axs.ylim([np.min(indices[np.where(indices > -np.inf)]), np.max(indices[np.where(indices < np.max)])])
+        axs.set_ylim([np.min(indices[np.where(indices > -np.inf)]), np.max(indices[np.where(indices < np.inf)])])
         plt.show()
     return k_range[index], index
