@@ -46,11 +46,12 @@ def generate_blobs_set(N: int, M: int, k: int = -1, n: int = -1, a: float = -1, 
         M : int
             Number of dimensions in the generated set.
         k : int, optional
-            Number of clusters, by default -1.
+            Number of clusters, by default -1, chosen randomly if -1.
         n : int, optional
-            Minimal number of points in each cluster, by default -1.
+            Minimal number of points in each cluster, by default -1, chosen randomly if -1.
         a : float, optional
-            The range of each attribute value, by default -1.
+            Intermix (overlap) ratio of clusters, takes values between 0 and 1.
+            Closer to 0 the more overlapped the clusters are. By default -1, chosen randomly if -1.
         meta : bool, optional
             If True, return metadata as well, by default False.
 
