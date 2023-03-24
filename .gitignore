@@ -1,2 +1,5 @@
 
 .idea/
+*.pyc
+*.pyc
+mircl/generation/__pycache__/generator.cpython-39.pyc
